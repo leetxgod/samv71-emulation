@@ -1,0 +1,28 @@
+# Minimal Renode script for ATSAMV71Q21B
+# Configured for UART0 (0x400E0800)
+
+mach create "atsamv71q21b"
+
+i @SAMV71_EEFC.cs
+
+machine LoadPlatformDescription @atsamv71q21b.repl
+
+macro reset
+"""
+    sysbus LoadELF @firmware.elf
+"""
+runMacro $reset
+
+sysbus LoadELF @firmware.elf
+
+# Optional GDB debugger on port 3333
+# machine StartGdbServer 3333
+
+emulation CreateUartPtyTerminal "term" "/tmp/uart" True
+connector Connect sysbus.uart0 term
+showAnalyzer sysbus.uart0
+
+sysbus LogPeripheralAccess sysbus.efc
+logLevel 0 sysbus.efc
+
+start

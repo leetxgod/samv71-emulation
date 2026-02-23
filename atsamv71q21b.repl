@@ -1,0 +1,84 @@
+nvic: IRQControllers.NVIC @ sysbus 0xE000E000
+    priorityMask: 0xF0
+    systickFrequency: 300000000
+    IRQ -> cpu@0
+
+cpu: CPU.CortexM @ sysbus
+    cpuType: "cortex-m7"
+    nvic: nvic
+    numberOfMPURegions: 16
+
+// SRAM
+internalsram: Memory.MappedMemory @ sysbus 0x20400000
+    size: 0x00400000
+
+// FLASH
+itcm: Memory.MappedMemory @ sysbus 0x0
+    size: 0x00400000
+
+flash: Memory.MappedMemory @ sysbus 0x00400000
+    size: 0x00200000
+
+rom: Memory.MappedMemory @ sysbus 0x00800000
+    size: 0x00400000
+
+
+uart0: UART.SAM_USART @ sysbus 0x400E0800
+    uartOnlyMode: true
+    ->nvic@7
+
+usart0: UART.SAM_USART @ sysbus 0x40024000
+    IRQ -> nvic@13
+
+usart1: UART.SAM_USART @ sysbus 0x40028000
+    IRQ -> nvic@14
+
+usart2: UART.SAM_USART @ sysbus 0x4002c000
+    IRQ -> nvic@15
+
+tc0: Timers.SAM_TC @ sysbus 0x400C0000
+    [0-2]->nvic@[23-25]
+
+tc1: Timers.SAM_TC @ sysbus 0x40010000
+    [0-2]->nvic@[26-28]
+
+tc2: Timers.SAM_TC @ sysbus 0x40014000
+    [0-2]->nvic@[47-49]
+
+tc3: Timers.SAM_TC @ sysbus 0x40054000
+    [0-2]->nvic@[50-52]
+
+gem: Network.CadenceGEM @ sysbus 0x40050000
+    IRQ -> nvic@39
+
+phy: Network.EthernetPhysicalLayer @ gem 0
+    Id1: 0x0007
+    Id2: 0xC0F1
+    AutoNegotiationAdvertisement: 0x00A1
+    AutoNegotiationLinkPartnerBasePageAbility: 0x0001
+
+trng: Miscellaneous.SAM_TRNG @ sysbus 0x40070000
+    // our model does not support interrupts yet, but if it did:
+    // -> nvic@57
+
+PMC_SR: Python.PythonPeripheral @ sysbus 0x400E0668
+    size: 0x4
+    initable: true
+    filename: "scripts/pydev/flipflop.py"
+
+supc: Python.PythonPeripheral @ sysbus 0x400E1810
+    size: 0x20
+    initable: true
+    filename: "scripts/pydev/flipflop.py"
+
+efc: Miscellaneous.SAMV71_EEFC @ sysbus 0x400E0C00
+    underlyingMemory: flash
+
+pio: Memory.MappedMemory @ sysbus 0x400E1000
+    size: 0x800
+
+
+sysbus:
+    init:
+        Tag <0x400E0940 0x4> "CIDR" 0xa1020e00
+        ApplySVD @https://dl.antmicro.com/projects/renode/svd/ATSAME70Q21.svd
