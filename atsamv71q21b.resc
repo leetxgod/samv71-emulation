@@ -2,27 +2,28 @@
 # Configured for UART0 (0x400E0800)
 
 mach create "atsamv71q21b"
-
 i @SAMV71_EEFC.cs
-
 machine LoadPlatformDescription @atsamv71q21b.repl
 
-macro reset
-"""
-    sysbus LoadELF @firmware.elf
-"""
-runMacro $reset
+# Set PC & SP automatically from ELF (no need to set manually)
+sysbus LoadELF @firmware_fsbl.elf
 
-sysbus LoadELF @firmware.elf
+# Load flash state
+sysbus LoadBinary @flash-stated-with-ssbl.bin 0x00400000
 
 # Optional GDB debugger on port 3333
-# machine StartGdbServer 3333
+machine StartGdbServer 3333
 
+# Port UART terminal
 emulation CreateUartPtyTerminal "term" "/tmp/uart" True
 connector Connect sysbus.uart0 term
 showAnalyzer sysbus.uart0
 
+# Log EFC accesses
 sysbus LogPeripheralAccess sysbus.efc
 logLevel 0 sysbus.efc
+
+# Align emulation quantum with FreeRTOS 1 ms tick for accurate timing
+emulation SetGlobalQuantum "0.001"
 
 start

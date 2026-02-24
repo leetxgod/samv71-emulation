@@ -1,12 +1,13 @@
 nvic: IRQControllers.NVIC @ sysbus 0xE000E000
     priorityMask: 0xF0
-    systickFrequency: 300000000
+    systickFrequency: 298666648
     IRQ -> cpu@0
 
 cpu: CPU.CortexM @ sysbus
     cpuType: "cortex-m7"
     nvic: nvic
     numberOfMPURegions: 16
+    PerformanceInMips: 300
 
 // SRAM
 internalsram: Memory.MappedMemory @ sysbus 0x20400000
@@ -37,15 +38,19 @@ usart2: UART.SAM_USART @ sysbus 0x4002c000
     IRQ -> nvic@15
 
 tc0: Timers.SAM_TC @ sysbus 0x400C0000
+    masterClockFrequency: 149333324
     [0-2]->nvic@[23-25]
 
 tc1: Timers.SAM_TC @ sysbus 0x40010000
+    masterClockFrequency: 149333324
     [0-2]->nvic@[26-28]
 
 tc2: Timers.SAM_TC @ sysbus 0x40014000
+    masterClockFrequency: 149333324
     [0-2]->nvic@[47-49]
 
 tc3: Timers.SAM_TC @ sysbus 0x40054000
+    masterClockFrequency: 149333324
     [0-2]->nvic@[50-52]
 
 gem: Network.CadenceGEM @ sysbus 0x40050000

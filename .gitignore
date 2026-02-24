@@ -1,2 +1,5 @@
 /test-project.X/build/
 /test-project.X/dist/
+
+*.elf
+*.bin
