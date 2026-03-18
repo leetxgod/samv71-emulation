@@ -1,19 +1,3 @@
-//
-// ATSAMV71Q21B Embedded Flash Controller (EEFC)
-//
-// SAM V71 GPNVM bits (3 total):
-//   Bit 0 — Security bit
-//   Bit 1 — Boot mode: 0 = ROM (SAM-BA), 1 = Flash
-//   Bit 2 — TCM configuration
-//
-// Usage in .repl:
-//   efc: Miscellaneous.SAMV71_EEFC @ sysbus 0x400E0C00
-//       underlyingMemory: flash
-//
-// Load in .resc before LoadPlatformDescription:
-//   i @SAMV71_EEFC.cs
-//
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -55,11 +39,6 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             DefineRegisters();
         }
 
-        // ----------------------------------------------------------------
-        // Public API
-        // ----------------------------------------------------------------
-
-        // 0x400 covers standard registers (0x00-0x0C) plus extended registers
         public long Size => 0x400;
         public string Version => "v6-setlockbit-oob";
 
@@ -92,10 +71,6 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                 Enumerable.Repeat((byte)0xFF, pageSize).ToArray(),
                 0, pageSize);
         }
-
-        // ----------------------------------------------------------------
-        // Private helpers
-        // ----------------------------------------------------------------
 
         private int  PageToLockRegion(int page) => page * pageSize / lockRegionSize;
         private bool IsPageLocked(int page)      => lockBits[PageToLockRegion(page)];
@@ -320,6 +295,14 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
                     valueProviderCallback: _ =>
                         resultQueue.TryDequeue(out var result) ? result : 0)
             ;
+
+            // Firmware polls an extended EFC window at 0x238.
+            // Keep a benign R/W stub here to avoid noisy unhandled-access logs.
+            Registers.ResultExt.Define(this)
+                .WithValueField(0, 32, name: "FRR_EXT",
+                    writeCallback: (_, value) => resultExt = (uint)value,
+                    valueProviderCallback: _ => resultExt)
+            ;
         }
 
         // ----------------------------------------------------------------
@@ -340,6 +323,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
         private readonly bool[]      lockBits;
         private readonly bool[]      gpnvmBits;
         private readonly Queue<uint> resultQueue = new Queue<uint>();
+        private uint resultExt;
 
         private const uint CommandKey             = 0x5A;
         private const uint DefaultFlashIdentifier = 0xA1220E00;
@@ -386,6 +370,7 @@ namespace Antmicro.Renode.Peripherals.Miscellaneous
             Command = 0x04,
             Status  = 0x08,
             Result  = 0x0C,
+            ResultExt = 0x238,
         }
     }
 }

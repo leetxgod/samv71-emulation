@@ -1,15 +1,17 @@
-# Minimal Renode script for ATSAMV71Q21B
-# Configured for UART0 (0x400E0800)
-
 mach create "atsamv71q21b"
 i @SAMV71_EEFC.cs
+i @SAMV71_HSMCI.cs
+i @SAMV71_TC0.cs
 machine LoadPlatformDescription @atsamv71q21b.repl
 
-# Set PC & SP automatically from ELF (no need to set manually)
-sysbus LoadELF @firmware_fsbl.elf
+macro reset
+"""
+    # Set PC & SP automatically from ELF (no need to set manually)
+    sysbus LoadELF @firmware_fsbl.elf
+"""
 
-# Load flash state
-sysbus LoadBinary @flash-stated-with-ssbl.bin 0x00400000
+# Initial flash state (FSBL+SSBL dump) - loaded once on startup.
+sysbus LoadBinary @flash-ssbl-app.bin 0x00400000
 
 # Optional GDB debugger on port 3333
 machine StartGdbServer 3333
@@ -19,6 +21,15 @@ emulation CreateUartPtyTerminal "term" "/tmp/uart" True
 connector Connect sysbus.uart0 term
 showAnalyzer sysbus.uart0
 
+# CAN bus setup (MCAN0 + MCAN1 on same virtual bus).
+emulation CreateCANHub "canHub"
+connector Connect sysbus.mcan0 canHub
+connector Connect sysbus.mcan1 canHub
+
+# Optional host bridge (requires a host SocketCAN iface, e.g. vcan0):
+machine CreateSocketCANBridge "socketcan"
+connector Connect socketcan canHub
+
 # Log EFC accesses
 sysbus LogPeripheralAccess sysbus.efc
 logLevel 0 sysbus.efc
@@ -26,4 +37,11 @@ logLevel 0 sysbus.efc
 # Align emulation quantum with FreeRTOS 1 ms tick for accurate timing
 emulation SetGlobalQuantum "0.001"
 
+# Attach SD card image (512 MB, persistent writes).
+# Build a 4-partition FAT32 image so /dev/mmcblka1..4 all exist:
+#   ./create_sd_card_image.sh sd_card.img 512 4
+# Adjust size (536870912 = 512 MB) to match your actual image.
+machine SdCardFromFile @sd_card.img sysbus.hsmci 536870912 true
+
+runMacro $reset
 start
